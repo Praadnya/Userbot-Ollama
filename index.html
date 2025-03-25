@@ -1,0 +1,254 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+            text-align: center;
+        }
+        input, button {
+            font-size: 16px;
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+        }
+        button {
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .response-box {
+            border: 1px solid #ccc;
+            background: #fff;
+            padding: 10px;
+            min-height: 50px;
+            text-align: left;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Chat with AI</h2>
+    <input type="text" id="userInput" placeholder="Ask a question..." />
+    <button onclick="sendMessage()">Ask AI</button>
+    
+    <h3>Response:</h3>
+    <div class="response-box" id="responseBox"></div>
+
+    <script>
+        async function sendMessage() {
+            const userInput = document.getElementById("userInput").value;
+            const responseBox = document.getElementById("responseBox");
+            responseBox.innerHTML = ""; // Clear previous response
+
+            const response = await fetch("http://127.0.0.1:8080/generate-response/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_input: userInput })
+            });
+
+            if (!response.body) {
+                responseBox.innerHTML = "Error: No response from server";
+                return;
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                responseBox.innerHTML += decoder.decode(value, { stream: true }); // Append streamed text
+            }
+        }
+    </script>
+
+</body>
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AI Loan Assistant</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 800px;
+                margin: auto;
+                padding: 20px;
+                background-color: #f4f4f4;
+                line-height: 1.6;
+            }
+            .container {
+                background: white;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                text-align: center;
+            }
+            input, button {
+                font-size: 16px;
+                padding: 12px;
+                margin: 10px 0;
+                width: 100%;
+                box-sizing: border-box;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+            }
+            button {
+                cursor: pointer;
+                background-color: #007bff;
+                color: white;
+                border: none;
+                transition: background-color 0.3s ease;
+            }
+            button:hover {
+                background-color: #0056b3;
+            }
+            button:disabled {
+                background-color: #cccccc;
+                cursor: not-allowed;
+            }
+            .response-box {
+                margin-top: 20px;
+                padding: 20px;
+                background-color: #f9f9f9;
+                border-radius: 6px;
+                min-height: 150px;
+                text-align: left;
+            }
+            .error {
+                color: red;
+                font-weight: bold;
+            }
+            .typing-indicator {
+                color: #666;
+                font-style: italic;
+                margin-top: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>AI Loan Assistant</h2>
+            
+            <input 
+                type="number" 
+                id="userId" 
+                placeholder="Enter User ID" 
+                required 
+            />
+            
+            <input 
+                type="text" 
+                id="userQuery" 
+                placeholder="Ask a question about your loan or financial situation" 
+                required 
+            />
+            
+            <button onclick="sendMessage()" id="submitButton">Submit Query</button>
+            
+            <div class="typing-indicator" id="typingIndicator">
+                AI is analyzing your query...
+            </div>
+            
+            <div class="response-box" id="responseBox">
+                Your personalized financial insights will appear here.
+            </div>
+        </div>
+    
+        <script>
+            async function sendMessage() {
+                const userId = document.getElementById("userId").value.trim();
+                const userQuery = document.getElementById("userQuery").value.trim();
+                const responseBox = document.getElementById("responseBox");
+                const submitButton = document.getElementById("submitButton");
+                const typingIndicator = document.getElementById("typingIndicator");
+                
+                // Validate inputs
+                if (!userId || !userQuery) {
+                    responseBox.innerHTML = "⚠️ Please enter both User ID and a query.";
+                    responseBox.classList.add('error');
+                    return;
+                }
+
+                // Disable button and show typing indicator
+                submitButton.disabled = true;
+                typingIndicator.style.display = 'block';
+                responseBox.innerHTML = '';
+                responseBox.classList.remove('error');
+
+                try {
+                    const response = await fetch(`http://localhost:8080/api/all?userId=${userId}`, {
+                        method: "POST",
+                        headers: { 
+                            "Content-Type": "application/json",
+                            "Accept": "text/event-stream"
+                        },
+                        body: JSON.stringify({ userQuery: userQuery })
+                    });
+
+                    // Check if response is ok
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    // Create a reader
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let fullResponse = '';
+
+                    // Read streaming response
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        
+                        if (done) break;
+                        
+                        // Decode chunk and process
+                        const chunk = decoder.decode(value, { stream: true });
+                        const processedChunk = chunk
+                            .split('data:')
+                            .filter(word => word.trim() !== '')
+                            .map(word => word.trim())
+                            .join(' ');
+                        
+                        // Append to full response
+                        fullResponse += processedChunk + ' ';
+                        
+                        // Update display
+                        responseBox.innerHTML = fullResponse.replace(/\s+/g, ' ').trim();
+                    }
+
+                } catch (error) {
+                    console.error("Error:", error);
+                    responseBox.innerHTML = `❌ Error: ${error.message}`;
+                    responseBox.classList.add('error');
+                } finally {
+                    // Re-enable button and hide typing indicator
+                    submitButton.disabled = false;
+                    typingIndicator.style.display = 'none';
+                }
+            }
+
+            // Add Enter key support
+            document.getElementById('userQuery').addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        </script>
+    </body>
+</html>
